@@ -10,7 +10,6 @@ RUN npm install --legacy-peer-deps
 
 COPY . .
 
-# 🔥 IMPORTANTE: Vite necesita esto en build
 COPY .env.production .env.production
 
 RUN npm run build
