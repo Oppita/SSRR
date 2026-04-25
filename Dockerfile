@@ -31,6 +31,4 @@ ENV NODE_ENV=production
 
 EXPOSE 10000
 
-RUN npm install tsx
-
 CMD ["npx", "tsx", "server.ts"]
