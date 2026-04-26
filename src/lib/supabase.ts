@@ -11,7 +11,7 @@ export const isSupabaseConfigured =
   isValidString(supabaseAnonKey) &&
   !supabaseUrl.includes('falta-configurar');
 
-export const supabaseUrl = supabaseUrl; // Exportar para debug
+export const supabaseUrl = supabaseUrl;
 
 let supabaseInstance: SupabaseClient | null = null;
 
@@ -28,32 +28,6 @@ export const getSupabase = (): SupabaseClient => {
         detectSessionInUrl: false,
         // ⚠️ CRÍTICO: Desactivar lock de navegador que causa timeouts
         lock: undefined,
-        // ⚠️ CRÍTICO: No usar storage local si hay conflictos
-        storage: {
-          getItem: (key) => {
-            try {
-              return Promise.resolve(localStorage.getItem(key));
-            } catch {
-              return Promise.resolve(null);
-            }
-          },
-          setItem: (key, value) => {
-            try {
-              localStorage.setItem(key, value);
-            } catch {
-              // Silenciar errores de quota exceeded
-            }
-            return Promise.resolve();
-          },
-          removeItem: (key) => {
-            try {
-              localStorage.removeItem(key);
-            } catch {
-              // Silenciar
-            }
-            return Promise.resolve();
-          },
-        },
       },
       global: {
         headers: {
