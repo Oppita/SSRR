@@ -260,6 +260,7 @@ export const EDANConsolidator: React.FC<EDANConsolidatorProps> = ({ initialData,
   const [reunionSearch, setReunionSearch] = useState('');
   const [comisionSearch, setComisionSearch] = useState('');
   const [maquinariaSearch, setMaquinariaSearch] = useState('');
+  const [expandedDetailedItems, setExpandedDetailedItems] = useState<Record<string, string | null>>({});
 
   const validateDemographicDamage = (item?: any): any => {
     if (!item) return { total: { cantidad: 0, valorUnitario: 0, valorTotal: 0 } };
@@ -616,7 +617,9 @@ export const EDANConsolidator: React.FC<EDANConsolidatorProps> = ({ initialData,
 
     const list: DetailedDamageItem[] = getNestedValue(formData[section], listFields) || [];
     
-    const [expandedItem, setExpandedItem] = useState<string | null>(null);
+    const listId = `${section}-${listField}`;
+    const expandedItem = expandedDetailedItems[listId] || null;
+    const setExpandedItem = (id: string | null) => setExpandedDetailedItems(prev => ({ ...prev, [listId]: id }));
 
     const fullPathArray = [section, ...listFields];
 
