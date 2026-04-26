@@ -35,7 +35,7 @@ import { FinancialTraceabilityDashboard } from './components/FinancialTraceabili
 import { MicRModule } from './components/MicRModule';
 import { EventosDashboard } from './components/EventosDashboard';
 import { SurveyModule } from './components/SurveyModule';
-import { supabase, isSupabaseConfigured, supabaseUrl } from './lib/supabase';
+import { supabase, isSupabaseConfigured } from './lib/supabase';
 import { ProjectData, DepartmentRisk, Threat } from './types';
 
 import { mockThreats } from './data/mockDepartments';
@@ -92,27 +92,27 @@ function App() {
   };
 
   const executeWithGuard = async (action: () => void) => {
-  // Si no hay Supabase → ejecutar directo
-  if (!isSupabaseConfigured) {
-    action();
-    return;
-  }
+    // Si no hay Supabase → ejecutar directo
+    if (!isSupabaseConfigured) {
+      action();
+      return;
+    }
 
-  // Si no hay usuario → pedir login
-  if (!user) {
-    setShowAuth(true);
-    showAlert('Debe iniciar sesión para realizar esta acción.');
-    return;
-  }
+    // Si no hay usuario → pedir login
+    if (!user) {
+      setShowAuth(true);
+      showAlert('Debe iniciar sesión para realizar esta acción.');
+      return;
+    }
 
-  // ✅ Ya autenticado → ejecutar sin pedir password otra vez
-  try {
-    action();
-  } catch (err) {
-    console.error(err);
-    showAlert('Error ejecutando la acción.');
-  }
-};
+    // ✅ Ya autenticado → ejecutar sin pedir password otra vez
+    try {
+      action();
+    } catch (err) {
+      console.error(err);
+      showAlert('Error ejecutando la acción.');
+    }
+  };
 
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
 
@@ -124,60 +124,40 @@ function App() {
     return () => window.removeEventListener('show-alert', handleAlert as EventListener);
   }, []);
 
+  // ✅ CORREGIDO: Auth initialization sin timeout forzado ni Promise.race conflictivo
   useEffect(() => {
     const initAuth = async () => {
       if (!isSupabaseConfigured) {
+        console.log('⚠️ Supabase no configurado, modo local activo');
         setAuthLoading(false);
         return;
       }
 
       console.log('🔄 Verificando estado de Supabase...');
       
-      let retries = 3;
-      let delay = 2000;
-      let sessionFound = false;
+      try {
+        // ⚠️ CRÍTICO: No usar Promise.race con timeout manual
+        // El lock de Supabase necesita tiempo, forzar timeout rompe el estado interno
+        const { data: { session }, error } = await supabase.auth.getSession();
 
-      while (retries > 0 && !sessionFound) {
-        try {
-          // Timeout más largo: 12 segundos por intento
-          const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Timeout excedido')), 12000)
-          );
-
-          const sessionPromise = supabase.auth.getSession();
-          
-          const { data: { session }, error } = await Promise.race([
-            sessionPromise,
-            timeoutPromise
-          ]) as any;
-
-          if (error) {
-            if (error.message.includes('Refresh Token Not Found') || error.message.includes('Invalid Refresh Token')) {
-              console.warn('⚠️ Sesión expirada o inválida, limpiando estado...');
-              await supabase.auth.signOut();
-              setUser(null);
-              sessionFound = true;
-            } else {
-              throw error;
-            }
+        if (error) {
+          if (error.message.includes('Refresh Token Not Found') || 
+              error.message.includes('Invalid Refresh Token') ||
+              error.message.includes('lock')) {
+            console.warn('⚠️ Sesión expirada/lock conflictivo, limpiando...');
+            await supabase.auth.signOut();
+            setUser(null);
           } else {
-            setUser(session?.user ?? null);
-            sessionFound = true;
-            console.log('✅ Supabase conectado correctamente');
+            console.error('❌ Error de sesión:', error.message);
+            setUser(null);
           }
-        } catch (err: any) {
-          retries--;
-          const errorMsg = err?.message || 'Error desconocido';
-          console.warn(`⏳ Intento ${4 - retries}/3 falló: ${errorMsg}`);
-
-          if (retries > 0) {
-            // Esperar antes de reintentar (backoff exponencial)
-            await new Promise(r => setTimeout(r, delay));
-            delay *= 1.5;
-          } else {
-            console.warn('❌ Supabase no disponible después de reintentos, usando modo local');
-          }
+        } else {
+          setUser(session?.user ?? null);
+          console.log('✅ Supabase conectado correctamente');
         }
+      } catch (err: any) {
+        console.error('❌ Error crítico Supabase:', err?.message || err);
+        setUser(null);
       }
 
       setAuthLoading(false);
@@ -185,11 +165,16 @@ function App() {
 
     initAuth();
 
-    const { data: { subscription } } = isSupabaseConfigured 
-      ? supabase.auth.onAuthStateChange((_event, session) => {
-          setUser(session?.user ?? null);
-        })
-      : { data: { subscription: { unsubscribe: () => {} } } };
+    // ⚠️ CRÍTICO: Manejar cambios de auth sin recargar la página
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('🔔 Evento de sesión:', event);
+      
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        setUser(session?.user ?? null);
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+      }
+    });
 
     return () => subscription.unsubscribe();
   }, []);
