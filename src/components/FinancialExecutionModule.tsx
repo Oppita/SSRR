@@ -694,7 +694,7 @@ export const FinancialExecutionModule: React.FC<FinancialExecutionModuleProps> =
         {[
           { label: 'CDP Registrados', value: totals.CDP, color: 'indigo' },
           { label: 'RC Registrados (Compromisos)', value: totals.RC, color: 'emerald' },
-          { label: 'Total Pagado (Consolidado)', value: state.globalTotalPagado || 0, color: 'blue' },
+          { label: 'Total Pagado (Consolidado)', value: state.pagos.reduce((sum, p) => sum + (p.valor || 0), 0), color: 'blue' },
           { label: 'Recursos por Liberar', value: difference, color: 'amber' }
         ].map(stat => {
           const percentage = projectTotal > 0 ? (stat.value / projectTotal) * 100 : 0;
