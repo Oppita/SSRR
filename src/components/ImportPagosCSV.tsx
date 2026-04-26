@@ -60,12 +60,12 @@ export const ImportPagosCSV: React.FC<ImportPagosCSVProps> = ({ contracts, onCom
             }
 
             // Extract fields based on requested structure
-            const numero = cleanRow['No.Pago'] || '';
+            const numero = cleanRow['No.Pago'] || cleanRow['Número'] || cleanRow['Numero'] || '';
             const cdp = cleanRow['CDP'] || '';
-            const areaEjecutora = cleanRow['Area Ejecutora'] || '';
-            const observaciones = cleanRow['Observación'] || '';
-            const identificacion = cleanRow['Identificación'] || '';
-            const beneficiario = cleanRow['Beneficiario'] || '';
+            const areaEjecutora = cleanRow['Area Ejecutora'] || cleanRow['Area'] || '';
+            const observaciones = cleanRow['Observación'] || cleanRow['Observacion'] || cleanRow['Concepto'] || '';
+            const identificacion = cleanRow['Identificación'] || cleanRow['Identificacion'] || cleanRow['NIT'] || '';
+            const beneficiario = cleanRow['Beneficiario'] || cleanRow['Nombre Beneficiario'] || '';
             
             // Clean value (e.g. 757,163.70 -> 757163.70)
             const validateDateStr = (dateStr: string) => {
@@ -85,7 +85,7 @@ export const ImportPagosCSV: React.FC<ImportPagosCSVProps> = ({ contracts, onCom
             const parseColombianNumber = (str: string) => {
               if (!str) return 0;
               // Remove currency symbols and spaces
-              let cleaned = str.replace(/[$\s]/g, '');
+              let cleaned = str.toString().replace(/[$\s]/g, '');
               
               // If it contains both . and , (e.g. 1.234,56)
               if (cleaned.includes('.') && cleaned.includes(',')) {
@@ -111,20 +111,21 @@ export const ImportPagosCSV: React.FC<ImportPagosCSVProps> = ({ contracts, onCom
               return Math.floor(val);
             };
 
-            const valor = parseColombianNumber(cleanRow['Valor']);
+            const rawValor = cleanRow['Valor'] || cleanRow['Valor Bruto'] || cleanRow['Valor Pagado'] || cleanRow['Valor Real'] || '';
+            const valor = parseColombianNumber(rawValor);
             const valorDistribuido = parseColombianNumber(cleanRow['Valor Distribuido']);
 
-            const banco = cleanRow['Banco'] || '';
+            const banco = cleanRow['Banco'] || cleanRow['Entidad Bancaria'] || cleanRow['Entidad'] || '';
             const tipoCuenta = cleanRow['Tipo Cuenta'] || '';
-            const cuenta = cleanRow['Cuenta'] || '';
+            const cuenta = cleanRow['Cuenta'] || cleanRow['No Cuenta'] || '';
             const solicitud = cleanRow['Solicitud'] || '';
-            const numeroContratoOriginal = cleanRow['Contrato'] || '';
+            const numeroContratoOriginal = cleanRow['Contrato'] || cleanRow['No. Contrato'] || '';
             const rc = (cleanRow['RC'] || '').trim();
-            const resolucion = cleanRow['Resolucion'] || '';
+            const resolucion = cleanRow['Resolucion'] || cleanRow['Resolución'] || '';
             const fuente = cleanRow['Fuente'] || '';
             const departamento = cleanRow['Departamento'] || '';
-            const ciudad = cleanRow['Ciudad'] || '';
-            const codigoRubro = cleanRow['Codigo rubro'] || '';
+            const ciudad = cleanRow['Ciudad'] || cleanRow['Municipio'] || '';
+            const codigoRubro = cleanRow['Codigo rubro'] || cleanRow['Codigo Rubro'] || '';
             const rubro = cleanRow['Rubro'] || '';
             const cuentaPago = cleanRow['Cuenta Pago'] || '';
             const firma = cleanRow['Firma'] || '';
