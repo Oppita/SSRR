@@ -92,39 +92,27 @@ function App() {
   };
 
   const executeWithGuard = async (action: () => void) => {
-    if (!isSupabaseConfigured) {
-      action();
-      return;
-    }
+  // Si no hay Supabase → ejecutar directo
+  if (!isSupabaseConfigured) {
+    action();
+    return;
+  }
 
-    if (!user) {
-      setShowAuth(true);
-      showAlert('Debe iniciar sesión con una cuenta autorizada para realizar acciones de administración.');
-      return;
-    }
+  // Si no hay usuario → pedir login
+  if (!user) {
+    setShowAuth(true);
+    showAlert('Debe iniciar sesión para realizar esta acción.');
+    return;
+  }
 
-    const pass = prompt('⚠️ ACCIÓN PROTEGIDA: Por favor, ingrese su contraseña de Supabase para confirmar:');
-    if (!pass) return;
-
-    try {
-      setAuthLoading(true);
-      const { error } = await supabase.auth.signInWithPassword({ 
-        email: user.email, 
-        password: pass 
-      });
-      
-      if (error) {
-        showAlert('❌ Acceso Denegado: La contraseña ingresada no es válida para esta cuenta.');
-        return;
-      }
-      
-      action();
-    } catch (err) {
-      showAlert('Error de seguridad al validar la cuenta.');
-    } finally {
-      setAuthLoading(false);
-    }
-  };
+  // ✅ Ya autenticado → ejecutar sin pedir password otra vez
+  try {
+    action();
+  } catch (err) {
+    console.error(err);
+    showAlert('Error ejecutando la acción.');
+  }
+};
 
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
 
