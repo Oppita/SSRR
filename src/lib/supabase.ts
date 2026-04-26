@@ -1,42 +1,51 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 // ===============================
-// 🔍 DEBUG (solo desarrollo)
-// ===============================
-if (import.meta.env.DEV) {
-  console.log("🔍 SUPABASE URL:", import.meta.env.VITE_SUPABASE_URL);
-  console.log(
-    "🔍 SUPABASE KEY:",
-    import.meta.env.VITE_SUPABASE_ANON_KEY ? "OK" : "MISSING"
-  );
-}
-
-// ===============================
-// 🔧 VARIABLES
+// 🔧 ENV CONFIG
 // ===============================
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // ===============================
-// ✅ VALIDACIÓN ROBUSTA
+// 🔍 VALIDACIÓN ESTRICTA
 // ===============================
+const isValidString = (v: any): v is string =>
+  typeof v === 'string' && v.trim().length > 0;
+
 export const isSupabaseConfigured =
-  typeof supabaseUrl === 'string' &&
-  typeof supabaseAnonKey === 'string' &&
-  supabaseUrl.length > 0 &&
-  supabaseAnonKey.length > 0 &&
+  isValidString(supabaseUrl) &&
+  isValidString(supabaseAnonKey) &&
   !supabaseUrl.includes('falta-configurar');
 
-if (!isSupabaseConfigured) {
-  console.warn('⚠️ Supabase no está configurado correctamente');
-}
+// ===============================
+// 🚨 ERROR CONTROLADO
+// ===============================
+const throwConfigError = () => {
+  throw new Error(`
+❌ SUPABASE NO CONFIGURADO
+
+Debes definir en tu archivo .env:
+
+VITE_SUPABASE_URL=...
+VITE_SUPABASE_ANON_KEY=...
+
+Ejemplo:
+VITE_SUPABASE_URL=https://xxxx.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOi...
+
+`);
+};
 
 // ===============================
-// 🔒 SINGLETON GLOBAL
+// 🔒 SINGLETON
 // ===============================
 let supabaseInstance: SupabaseClient | null = null;
 
 export const getSupabase = (): SupabaseClient => {
+  if (!isSupabaseConfigured) {
+    throwConfigError();
+  }
+
   if (!supabaseInstance) {
     supabaseInstance = createClient(supabaseUrl!, supabaseAnonKey!, {
       auth: {
@@ -46,13 +55,29 @@ export const getSupabase = (): SupabaseClient => {
       },
     });
   }
+
   return supabaseInstance;
 };
 
 // ===============================
-// 🚀 EXPORT ÚNICO
+// 🚀 EXPORT PRINCIPAL
 // ===============================
-export const supabase = getSupabase();
+export const supabase: SupabaseClient = (() => {
+  if (!isSupabaseConfigured) {
+    // 🔁 MODO SEGURO: mock mínimo para no romper la app
+    console.warn('⚠️ Supabase no configurado. Usando cliente mock.');
+
+    return {
+      auth: {
+        getSession: async () => ({ data: { session: null }, error: null }),
+        signInWithPassword: async () => ({ data: null, error: new Error('Supabase no configurado') }),
+        signOut: async () => ({ error: null }),
+      },
+    } as unknown as SupabaseClient;
+  }
+
+  return getSupabase();
+})();
 
 // ===============================
 // 🧠 UTILIDAD SEGURA
@@ -66,3 +91,12 @@ export const safeGetSession = async () => {
     return null;
   }
 };
+
+// ===============================
+// 🔍 DEBUG (solo dev)
+// ===============================
+if (import.meta.env.DEV) {
+  console.log("🔍 SUPABASE URL:", supabaseUrl);
+  console.log("🔍 SUPABASE KEY:", supabaseAnonKey ? "OK" : "MISSING");
+  console.log("🔍 CONFIG STATUS:", isSupabaseConfigured ? "VALID" : "INVALID");
+}
