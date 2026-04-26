@@ -143,34 +143,56 @@ function App() {
         return;
       }
 
-      // Tiempo límite de 4 segundos para evitar que la app se quede "pensando" infinitamente
-      const authTimeout = setTimeout(() => {
-        if (authLoading) {
-          console.warn('Timeout de Supabase alcanzado, entrando en modo local...');
-          setAuthLoading(false);
-        }
-      }, 4000);
+      console.log('🔄 Verificando estado de Supabase...');
+      
+      let retries = 3;
+      let delay = 2000;
+      let sessionFound = false;
 
-      console.log('Verificando estado de Supabase...');
+      while (retries > 0 && !sessionFound) {
+        try {
+          // Timeout más largo: 12 segundos por intento
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Timeout excedido')), 12000)
+          );
 
-      supabase.auth.getSession().then(({ data: { session }, error }) => {
-        clearTimeout(authTimeout);
-        if (error) {
-          if (error.message.includes('Refresh Token Not Found') || error.message.includes('Invalid Refresh Token')) {
-             console.warn('Sesión expirada o inválida, limpiando estado...');
-             supabase.auth.signOut();
-             setUser(null);
+          const sessionPromise = supabase.auth.getSession();
+          
+          const { data: { session }, error } = await Promise.race([
+            sessionPromise,
+            timeoutPromise
+          ]) as any;
+
+          if (error) {
+            if (error.message.includes('Refresh Token Not Found') || error.message.includes('Invalid Refresh Token')) {
+              console.warn('⚠️ Sesión expirada o inválida, limpiando estado...');
+              await supabase.auth.signOut();
+              setUser(null);
+              sessionFound = true;
+            } else {
+              throw error;
+            }
           } else {
-            console.warn('Supabase no disponible, usando modo local:', error.message);
+            setUser(session?.user ?? null);
+            sessionFound = true;
+            console.log('✅ Supabase conectado correctamente');
           }
-        } else {
-          setUser(session?.user ?? null);
+        } catch (err: any) {
+          retries--;
+          const errorMsg = err?.message || 'Error desconocido';
+          console.warn(`⏳ Intento ${4 - retries}/3 falló: ${errorMsg}`);
+
+          if (retries > 0) {
+            // Esperar antes de reintentar (backoff exponencial)
+            await new Promise(r => setTimeout(r, delay));
+            delay *= 1.5;
+          } else {
+            console.warn('❌ Supabase no disponible después de reintentos, usando modo local');
+          }
         }
-      }).catch(err => {
-        console.warn('Error de conexión a Supabase, modo local activado:', err.message);
-      }).finally(() => {
-        setAuthLoading(false);
-      });
+      }
+
+      setAuthLoading(false);
     };
 
     initAuth();
