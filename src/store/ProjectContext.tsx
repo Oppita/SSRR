@@ -3014,15 +3014,19 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       isCloudCheckComplete,
       hasSyncedWithCloud
     }}>
+      export const ProjectProvider: React.FC<...> = ({ children }) => {
+  // ... estados y hooks
+  
+  // useEffects ← AQUÍ
+  useEffect(() => { ... }, [hasSyncedWithCloud]);
+  
+  // funciones
+  const saveToSupabase = ...
+  const loadFromSupabase = ...
+  
+  return (           // ← return al final
+    <ProjectContext.Provider value={...}>
       {children}
     </ProjectContext.Provider>
   );
-};
-
-export const useProject = () => {
-  const context = useContext(ProjectContext);
-  if (context === undefined) {
-    throw new Error('useProject must be used within a ProjectProvider');
-  }
-  return context;
 };
