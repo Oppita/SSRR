@@ -2831,14 +2831,13 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     });
   };
 
-    const updateMunicipalityInventory = (inventory: MunicipalityInventory) => {
+  const updateMunicipalityInventory = (inventory: MunicipalityInventory) => {
     setState(prev => {
       const exists = prev.municipalityInventories?.find(m => m.id === inventory.id);
       const updatedInventories = exists
         ? prev.municipalityInventories.map(m => m.id === inventory.id ? inventory : m)
         : [...(prev.municipalityInventories || []), inventory];
 
-      // Aggregate metrics to parent event if eventId is present
       let updatedEventos = prev.eventos;
       if (inventory.eventId) {
         const parentEvent = prev.eventos.find(e => e.id === inventory.eventId);
@@ -2911,7 +2910,6 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     });
   };
 
-  // ==================== RETURN DEL PROVIDER ====================
   return (
     <ProjectContext.Provider value={{
       state,
