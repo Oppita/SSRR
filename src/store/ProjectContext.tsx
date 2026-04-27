@@ -2831,7 +2831,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     });
   };
 
-  const updateMunicipalityInventory = (inventory: MunicipalityInventory) => {
+    const updateMunicipalityInventory = (inventory: MunicipalityInventory) => {
     setState(prev => {
       const exists = prev.municipalityInventories?.find(m => m.id === inventory.id);
       const updatedInventories = exists
@@ -2843,10 +2843,8 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (inventory.eventId) {
         const parentEvent = prev.eventos.find(e => e.id === inventory.eventId);
         if (parentEvent) {
-          // Get all inventories for this event
           const eventInventories = updatedInventories.filter(inv => inv.eventId === inventory.eventId);
           
-          // Calculate aggregated metrics
           let totalPersonasAfectadas = 0;
           let totalViviendasDanadas = 0;
           let totalInfraestructuraAfectada = 0;
@@ -2860,14 +2858,12 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
           eventInventories.forEach(inv => {
             totalPersonasAfectadas += (inv.poblacion?.personasAfectadas?.total?.cantidad || 0);
             
-            // Sum all viviendas
             Object.values(inv.danosVivienda || {}).forEach(item => {
               if (item && typeof item === 'object' && 'cantidad' in item) {
                 totalViviendasDanadas += (item.cantidad || 0);
               }
             });
             
-            // Sum all infraestructura
             Object.values(inv.infraestructura || {}).forEach(item => {
               totalInfraestructuraAfectada += (item.cantidad || 0);
             });
@@ -2875,7 +2871,6 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
             totalCostoEstimado += (inv.costoTotalEstimado || 0);
             totalMaquinariaHoras += (inv.necesidades?.maquinariaHoras?.cantidad || 0);
             
-            // Aggregate tipoEvento
             inv.generalData?.tipoEvento?.forEach(tipo => {
               tipoEventoComposition[tipo] = (tipoEventoComposition[tipo] || 0) + 1;
             });
@@ -2916,16 +2911,17 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     });
   };
 
-    return (
-    <ProjectContext.Provider value={{ 
-      state, 
+  // ==================== RETURN DEL PROVIDER ====================
+  return (
+    <ProjectContext.Provider value={{
+      state,
       loading,
       syncing,
       error,
-      addInterventoriaReport, 
+      addInterventoriaReport,
       validateInterventoriaReport,
-      addProject, 
-      addContract, 
+      addProject,
+      addContract,
       updateContract,
       deleteContract,
       addContractEvent,
